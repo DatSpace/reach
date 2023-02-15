@@ -185,6 +185,29 @@ bool ReachStudy::run(const StudyParameters& sp) {
           // keep it running
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+
+        // Save data in a CSV file
+        std::ofstream myfile;
+        myfile.open ("reach_record.csv", std::ios_base::app);
+        myfile << "arm" <<  "," << "distance" << "," << "conveyor_angle" << "," << "pose_x" << "," << "pose_xy" << "," << "pose_xz" << "," << "is_reached" << std::endl;
+        std::string arm = sp_.config_name.substr( 0, sp_.config_name.find('_'));
+        // For a format of left_armtx_reach_object_3.2fixed_conveyor_belt_joint_value_-18.0, 20 is on the object word
+        std::string distance = sp_.config_name.substr( sp_.config_name.find('_', 20) + 1, sp_.config_name.find("fixed") - sp_.config_name.find('_', 20) - 1);
+        std::string angle = sp_.config_name.substr( sp_.config_name.find('_', 55) + 1);
+
+        for (int i = 0; i < db_->size(); ++i) {
+          reach_msgs::msg::ReachRecord msg = *db_->get(std::to_string(i));
+
+          if (msg.reached) {
+            myfile << arm << "," << distance << "," << angle << "," << std::to_string(msg.goal.position.x) << "," << std::to_string(msg.goal.position.y) << "," << std::to_string(msg.goal.position.z) << ","
+              << "1" << std::endl;
+          }else{
+            myfile << arm << "," << distance << "," << angle << "," << std::to_string(msg.goal.position.x) << "," << std::to_string(msg.goal.position.y) << "," << std::to_string(msg.goal.position.z) << ","
+              << "0" << std::endl;
+          }
+        }
+        myfile.close();
+
         db_->calculateResults();
         db_->save(results_dir_ + SAVED_DB_NAME);
         return true;
